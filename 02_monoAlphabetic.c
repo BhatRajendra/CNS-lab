@@ -1,72 +1,42 @@
-#include <ctype.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-
-// Function to encrypt plaintext using monoalphabetic cipher
-void encrypt(char plaintext[], char key[]) {
-  int i;
-  for (i = 0; i < strlen(plaintext); i++) {
-    // Encrypt only alphabetic characters
-    if (isalpha(plaintext[i])) {
-      if (islower(plaintext[i])) {
-        plaintext[i] = key[plaintext[i] - 'a'];
-      } else {
-        plaintext[i] = toupper(key[plaintext[i] - 'A']);
-      }
-    }
-  }
+#include <openssl/aes.h>
+// AES key for encryption and decryption (128-bit key)
+unsigned char aes_key[16];
+// Function to encrypt plaintext using AES
+void aes_encrypt(unsigned char *plaintext, unsigned char *ciphertext) {
+    AES_KEY key;
+    AES_set_encrypt_key(aes_key, 128, &key);
+    AES_encrypt(plaintext, ciphertext, &key);
 }
-
-// Function to decrypt ciphertext using monoalphabetic cipher
-void decrypt(char ciphertext[], char key[]) {
-  int i;
-  for (i = 0; i < strlen(ciphertext); i++) {
-    // Decrypt only alphabetic characters
-    if (isalpha(ciphertext[i])) {
-      if (islower(ciphertext[i])) {
-        int index = strchr(key, ciphertext[i]) - key;
-        ciphertext[i] = 'a' + index;
-      } else {
-        int index = strchr(key, tolower(ciphertext[i])) - key;
-        ciphertext[i] = 'A' + index;
-      }
-    }
-  }
+// Function to decrypt ciphertext using AES
+void aes_decrypt(unsigned char *ciphertext, unsigned char *decryptedtext) {
+    AES_KEY key;
+    AES_set_decrypt_key(aes_key, 128, &key);
+    AES_decrypt(ciphertext, decryptedtext, &key);
 }
-
 int main() {
-  char plaintext[1000];
-  char key[26];
+    unsigned char plaintext[100];
+    unsigned char ciphertext[AES_BLOCK_SIZE]; // AES block size is 128 bits
+    unsigned char decryptedtext[AES_BLOCK_SIZE];
+    printf("enter text: ");
+    fgets(plaintext, sizeof(plaintext), stdin);
+    plaintext[strcspn(plaintext, "\n")] = '\0';    // Encrypt the plaintext
+    
+    printf("enter key: ");
+    fgets(aes_key, 16, stdin);
+    aes_encrypt(plaintext, ciphertext);
 
-  printf("Enter plaintext: ");
-  fgets(plaintext, sizeof(plaintext), stdin);
-  plaintext[strcspn(plaintext, "\n")] = '\0'; // Remove newline character
-
-  printf("Enter key: ");
-  fgets(key, sizeof(key), stdin);
-  key[strcspn(key, "\n")] = '\0'; // Remove newline character
-
-  // Convert key to lowercase
-  for (int i = 0; key[i]; i++) {
-    key[i] = tolower(key[i]);
-  }
-
-  printf("\nOriginal: %s\n", plaintext);
-
-  encrypt(plaintext, key);
-  printf("Encrypted: %s\n", plaintext);
-
-  decrypt(plaintext, key);
-  printf("Decrypted: %s\n", plaintext);
-
-  return 0;
+    // Decrypt the ciphertext
+    aes_decrypt(ciphertext, decryptedtext);
+    printf("Original message: %s\n", plaintext);
+    printf("Encrypted message: ");
+    for (int i = 0; i < AES_BLOCK_SIZE; i++) {
+        printf("%02x", ciphertext[i]);
+    }
+    printf("\n");
+    printf("Decrypted message: %s\n", decryptedtext);
+    return 0;
 }
-/*
-A long time ago, in a galaxy far, far away... It is a dark time for the
-Rebellion. Although the Death Star has been destroyed, Imperial troops have
-driven the Rebel forces from their hidden base and pursued them across the
-galaxy. Evading the dreaded Imperial Starfleet, a group of freedom fighters led
-by Luke Skywalker has established a new secret base on the remote ice world of
-Hoth. The evil lord Darth Vader, obsessed with finding young Skywalker, has
-dispatched thousands of remote probes into the far reaches of space…
-*/
+//gcc  aes.c -lssl -lcrypto
